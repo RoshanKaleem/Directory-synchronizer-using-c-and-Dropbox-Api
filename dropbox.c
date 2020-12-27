@@ -79,7 +79,7 @@ int upload_file(const char *filename)
 
     char drp_api_arg[200];
 
-    sprintf(drp_api_arg, "Dropbox-API-Arg: {\"path\": \"/nextgenupload/%s\",\"mode\": \"add\"\
+    sprintf(drp_api_arg, "Dropbox-API-Arg: {\"path\": \"/nextgenupload4/%s\",\"mode\": \"add\"\
         ,\"autorename\": true,\"mute\": false,\"strict_conflict\": false}",
             filename);
 
@@ -183,7 +183,7 @@ int end_session(const char *session_id, int offset, const char *filename, char *
     char url_end_session[200] = {"https://content.dropboxapi.com/2/files/upload_session/finish"};
 
     char drp_arg[200];
-    sprintf(drp_arg, "Dropbox-API-Arg: {\"cursor\": {\"session_id\": \"%s\",\"offset\": %d},\"commit\": {\"path\": \"/nextgenupload/%s\",\"mode\": \"add\",\"autorename\": true,\"mute\": false,\"strict_conflict\": false}}",
+    sprintf(drp_arg, "Dropbox-API-Arg: {\"cursor\": {\"session_id\": \"%s\",\"offset\": %d},\"commit\": {\"path\": \"/nextgenupload4/%s\",\"mode\": \"add\",\"autorename\": true,\"mute\": false,\"strict_conflict\": false}}",
             session_id, offset, filename);
 
     if (curl)
@@ -277,42 +277,25 @@ int download_file()
 
     return 0;
 }
-void uploadfiles()
+void uploadfiles(const char *fname)
 {
 
-    DIR *d;
-    struct dirent *dir;
-    d = opendir(".");
-    if (d)
-    {
+ 
+                FILE *inputchk = fopen(fname, "rb");
 
-        while ((dir = readdir(d)) != NULL)
-        {
-            if (strcmp(dir->d_name, ".") == 0)
-            {
-            }
-            else if (strcmp(dir->d_name, "..") == 0)
-            {
-            }
-            else
-            {
-                FILE *inputchk = fopen(dir->d_name, "rb");
-
-                printf("%ld:%s\n", file_size(inputchk), dir->d_name);
+                printf("%ld:%s\n", file_size(inputchk), fname);
                 if (file_size(inputchk) > 150000000)
                 {
                     fclose(inputchk);
-                    upload_large_file(dir->d_name);
+                    upload_large_file(fname);
                 }
                 else
                 {
                     fclose(inputchk);
                     printf("\ni am less than 150 mb\n");
-                    upload_file(dir->d_name);
+                    upload_file(fname);
                 }
-            }
-        }
-    }
+            
 }
 
 static time_t getFileModifiedTime(const char *path)
@@ -342,10 +325,17 @@ int get_inode(int fd)
 
 void chkfiles()
 { //Add files in text file and maintain record
-
+  FILE *inf;
+                
+                inf = fopen("filedata2.txt", "r");
+ if (inf == NULL)
+                {
+            inf = fopen("filedata2.txt", "w");
+                }
     DIR *d;
     struct dirent *dir;
     d = opendir(".");
+int pie=0;
     if (d)
     {
 
@@ -359,9 +349,9 @@ void chkfiles()
             }
             else
             {
-                FILE *inf;
+               
                 struct Filedata inp;
-                inf = fopen("filedata.txt", "r");
+                inf = fopen("filedata2.txt", "r");
                 if (inf == NULL)
                 {
                     fprintf(stderr, "\nError to open the file\n");
@@ -385,7 +375,7 @@ void chkfiles()
                     if (inode1 == inp.inodeoffile)
                     {
                         x = 1;
-                        //printf("inode = %d modified = %s\n", inp.inodeoffile, ctime(&(inp.modifiedtime)));
+                   //  printf("inode = %d modified = %s\n", inp.inodeoffile, ctime(&(inp.modifiedtime)));
                     }
                 }
                 fclose(inf);
@@ -397,7 +387,7 @@ void chkfiles()
                 if (x == 0)
                 {
                     FILE *of;
-                    of = fopen("filedata.txt", "a");
+                    of = fopen("filedata2.txt", "a");
                     if (of == NULL)
                     {
                         fprintf(stderr, "\nError to open the file\n");
@@ -417,8 +407,9 @@ void chkfiles()
                     printf("%d\n", inode1);
 
                     struct Filedata inp1 = {inode1, t1};
-
+                   uploadfiles(dir->d_name);
                     fwrite(&inp1, sizeof(struct Filedata), 1, of);
+                    pie++;
 
                     if (fwrite != 0)
                         printf("Contents to file written successfully !\n");
@@ -444,14 +435,17 @@ void chkfiles()
             }
         }
     }
+
+printf("\npie value:%d",pie);
 }
 int main(void)
 {
 
-    chkfiles();
+  chkfiles();
     struct Filedata inp;
     FILE *inf;
-    inf = fopen("filedata.txt", "r");
+    inf = fopen("filedata2.txt", "r");
+int j=0;
     if (inf == NULL)
     {
         fprintf(stderr, "\nError to open the file\n");
@@ -460,9 +454,11 @@ int main(void)
     while (fread(&inp, sizeof(struct Filedata), 1, inf))
     {
         struct stat attr;
-        //  printf("\n\ninode = %d modified = %s\n", inp.inodeoffile, ctime(&(inp.modifiedtime)));
+          printf("inode = %d modified = %s\n", inp.inodeoffile, ctime(&(inp.modifiedtime)));
+j++;
     }
     fclose(inf);
+printf("j value:%d",j);
     //uploadfiles();
     printf("\n");
 }
