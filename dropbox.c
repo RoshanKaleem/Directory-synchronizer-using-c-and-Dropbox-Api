@@ -7,9 +7,13 @@
 #include <jansson.h>
 #include <dirent.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 #define OFFSET_CONSTANT 3688
 #define MAX_BUFFER 7000000
+
+FILE *fp = NULL;
 
 // CURL *curl;
 // CURLcode res;
@@ -28,7 +32,7 @@ struct Filedata
 };
 
 char access_token[1024] =
-    {"Authorization: Bearer R57RAvBXW6MAAAAAAAAAAXIqRvd6pz1JdNxWeuh1dmFalpK7ldqUsOWwfFMF3DU-"};
+    {"Authorization: Bearer E2Garv6gOmwAAAAAAAAAASlVDZ6ttViuBVx_baqMoX3nhhyby3VC8diQEUwrkaMk"};
 char cnt_type[1024] =
     {"Content-Type: application/octet-stream"};
 
@@ -79,7 +83,7 @@ int upload_file(const char *filename)
 
     char drp_api_arg[200];
 
-    sprintf(drp_api_arg, "Dropbox-API-Arg: {\"path\": \"/nextgenupload5/%s\",\"mode\": \"add\"\
+    sprintf(drp_api_arg, "Dropbox-API-Arg: {\"path\": \"/nextgenupload/%s\",\"mode\": \"add\"\
         ,\"autorename\": true,\"mute\": false,\"strict_conflict\": false}",
             filename);
 
@@ -178,12 +182,12 @@ int end_session(const char *session_id, int offset, const char *filename, char *
     struct curl_slist *list = NULL;
     curl = curl_easy_init();
 
-    char access_token[1024] =
-        {"Authorization: Bearer R57RAvBXW6MAAAAAAAAAAXIqRvd6pz1JdNxWeuh1dmFalpK7ldqUsOWwfFMF3DU-"};
+    // char access_token[1024] =
+    //     {"Authorization: Bearer 29qJs-D3sYIAAAAAAAAAARiIl8ER8RjLrm8aGMWOG45uSTzxmxqZoMxcme6O4Or1"};
     char url_end_session[200] = {"https://content.dropboxapi.com/2/files/upload_session/finish"};
 
     char drp_arg[200];
-    sprintf(drp_arg, "Dropbox-API-Arg: {\"cursor\": {\"session_id\": \"%s\",\"offset\": %d},\"commit\": {\"path\": \"/nextgenupload5/%s\",\"mode\": \"add\",\"autorename\": true,\"mute\": false,\"strict_conflict\": false}}",
+    sprintf(drp_arg, "Dropbox-API-Arg: {\"cursor\": {\"session_id\": \"%s\",\"offset\": %d},\"commit\": {\"path\": \"/nextgenupload/%s\",\"mode\": \"add\",\"autorename\": true,\"mute\": false,\"strict_conflict\": false}}",
             session_id, offset, filename);
 
     if (curl)
@@ -272,11 +276,7 @@ void upload_large_file(const char *filename)
     }
     end_session(session_id, total_bytes, filename, "buffer");
 }
-int download_file()
-{
 
-    return 0;
-}
 void uploadfiles(const char *fname)
 {
 
@@ -306,6 +306,7 @@ static time_t getFileModifiedTime(const char *path)
     }
     return 0;
 }
+
 int get_inode(int fd)
 {
     struct stat buf;
@@ -449,6 +450,7 @@ void chkfiles()
 
     printf("\npie value:%d", pie);
 }
+
 void printfile()
 {
     struct Filedata inp;
@@ -469,12 +471,66 @@ void printfile()
     fclose(inf);
     printf("j value:%d", j);
 }
+
 int main(void)
 {
 
-    chkfiles();
+    pid_t process_id = 0;
+    pid_t sid = 0;
 
-    //uploadfiles();
-    printfile();
-    printf("\n");
+    process_id = fork();
+
+    if (process_id < 0)
+    {
+        printf("fork failed!\n");
+        exit(1);
+    }
+
+    if (process_id > 0)
+    {
+        printf("process_id of child process %d \n", process_id);
+        exit(0);
+    }
+
+    umask(0);
+
+    sid = setsid();
+    if (sid < 0)
+    {
+        exit(1);
+    }
+    // Change the current working directory to root.
+    // chdir("/");
+    // Close stdin. stdout and stderr
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
+
+    int i = 0;
+    while (1)
+    {
+        DIR *d;
+        struct dirent *dir;
+        d = opendir(".");
+        fp = fopen("x.log", "a+");
+        fprintf(fp, "*************************************** backgroung process :%d *****************************************\n", i);
+
+        if (d)
+        {
+            while ((dir = readdir(d)) != NULL)
+            {
+                // printf("%s\n", dir->d_name);
+                fprintf(fp, "%s\n", dir->d_name);
+            }
+            closedir(d);
+        }
+
+        fprintf(fp, "********************************************************************************************************\n");
+        fclose(fp);
+        chkfiles();
+        sleep(100);
+        i++;
+    }
+    fclose(fp);
+    return (0);
 }
